@@ -1,38 +1,35 @@
 name: Update Subscription
-
 on:
   schedule:
-    # 每天早上9:00执行 (UTC+8)
-    - cron: '0 1 * * *'
-    # 如果9:00未更新，下午14:00再次执行 (UTC+8)
-    - cron: '0 6 * * *'
-  workflow_dispatch:  # 允许手动触发
+    # 每小时执行一次 (UTC 每小时的第0分)
+    - cron: '0 * * * *'
+    
+  workflow_dispatch: # 允许手动触发
     inputs:
       force_update:
         description: '强制更新（忽略今日已更新检查）'
         required: false
         default: 'false'
-
 jobs:
   update-subscription:
     runs-on: ubuntu-latest
-    
+   
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-    
+   
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    
+   
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install requests beautifulsoup4 lxml
-    
+   
     - name: Check if already updated today
       id: check_date
       run: |
@@ -50,12 +47,12 @@ jobs:
           echo "首次执行，需要更新"
           echo "skip=false" >> $GITHUB_OUTPUT
         fi
-    
+   
     - name: Run enhanced crawler
       if: steps.check_date.outputs.skip == 'false'
       run: |
         python enhanced_crawler.py
-    
+   
     - name: Check if subscription.txt was updated
       if: steps.check_date.outputs.skip == 'false'
       id: check_update
@@ -72,12 +69,12 @@ jobs:
           echo "文件不存在"
           echo "updated=false" >> $GITHUB_OUTPUT
         fi
-    
+   
     - name: Update last_updated date
       if: steps.check_update.outputs.updated == 'true'
       run: |
         date +%Y-%m-%d > last_updated.txt
-    
+   
     - name: Commit and push if changed
       if: steps.check_update.outputs.updated == 'true'
       run: |
